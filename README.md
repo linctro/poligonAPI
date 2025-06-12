@@ -1,0 +1,2 @@
+# poligonAPI
+基礎レーダーのUPDATEにともなうAPI連携のデモ用
