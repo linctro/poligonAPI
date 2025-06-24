@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>poligon API</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="container">
+    <h2>NFTコレクションの名前表示</h2>
+    <input id="wallet" placeholder="walletアドレスを入力" style="width: 100%;padding: 0.5rem;">
+    <button onclick="displayNFTNames()"
+      style="width: 100%;padding: 1rem;margin-top: 1rem;font-size: 1rem;">取得して表示</button>
+    <div id="loading" class="loading">読み込み中...</div>
+    <div id="count"></div>
+    <div id="nft-list"></div>
+  </div>
+
+  <ul id="result"></ul>
+</body>
+<script>
+
+  const delay = ms => new Promise(res => setTimeout(res, ms));
+
+  const getWalletNFTsForCollection = async (walletAddress, apiKey) => {
+    const endpoint = `https://deep-index.moralis.io/api/v2.2/${walletAddress}/nft?chain=polygon&normalizeMetadata=true`;
+    const collectionAddress = '0x5d94faa2d2bf6a7c72a8d4925b931afd470e894e';
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          'X-API-Key': apiKey
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const data = await response.json();
+
+      return data.result.filter(nft =>
+        nft.token_address?.toLowerCase() === collectionAddress.toLowerCase()
+      );
+
+    } catch (error) {
+      console.error("NFTの取得中にエラーが発生しました:", error);
+      return [];
+    }
+  };
+
+  const displayOnScreen = (idNumber, index) => {
+    const container = document.getElementById('nft-list');
+    const item = document.createElement('div');
+    item.className = 'nft-item';
+    item.textContent = `${index}. NFT番号: ${idNumber}`;
+    container.appendChild(item);
+    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  const extractNumber = (name) => {
+    if (typeof name !== 'string') return '';
+    const normalized = name.replace(/＃/g, '#');
+    const match = normalized.match(/#(\d+)/);
+    return match ? String(parseInt(match[1], 10)) : '';
+  };
+
+  const displayNFTNames = async () => {
+    document.getElementById('nft-list').innerHTML = '';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('count').textContent = '';
+
+    const wallet = document.getElementById('wallet').value.trim();
+    const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImE4NTk2YTk5LTE5M2ItNDgxZC04NDk4LTI2Yzk5Njg3ZmEyZiIsIm9yZ0lkIjoiNDUyNDY3IiwidXNlcklkIjoiNDY1NTQ3IiwidHlwZUlkIjoiY2NlZDgwMWQtNjQyZC00ZTM5LWI4MjgtYzI2NzBhYmI1OGJjIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3NDk1NTg1NDMsImV4cCI6NDkwNTMxODU0M30.yqz3uzTg-8pskfxNVBksGGoXUeVahEJCIa3XJJ6ukqw'
+
+    if (!wallet) return alert('ウォレットのアドレスを入力してください');
+
+    const nfts = await getWalletNFTsForCollection(wallet, apiKey);
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('count').textContent = `NFT所持数: ${nfts.length}点`;
+
+    nfts.forEach((nft, i) => {
+      const name = nft.normalized_metadata?.name || `Token #${nft.token_id}`;
+      console.log('NFT名:', name);
+
+      const number = extractNumber(name);
+      console.log('抽出した番号:', number);
+
+      displayOnScreen(number, i + 1);
+    });
+  };
+
+
+</script>
+
+</html>
